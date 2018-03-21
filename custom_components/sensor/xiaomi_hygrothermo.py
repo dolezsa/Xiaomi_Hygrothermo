@@ -2,7 +2,6 @@ import re
 import logging
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from bluepy import btle
 from datetime import timedelta
 from homeassistant.const import (ATTR_BATTERY_LEVEL, CONF_NAME, CONF_MAC, CONF_SCAN_INTERVAL, TEMP_CELSIUS)
 from homeassistant.helpers.entity import Entity
@@ -10,7 +9,7 @@ from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.helpers.event import track_time_interval
 from homeassistant.util.dt import utcnow
 
-REQUIREMENTS = ['bluepy']
+REQUIREMENTS = ['bluepy==1.1.4']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,15 +39,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     track_time_interval(hass, device.get_data, config.get(CONF_SCAN_INTERVAL))
 
-class XiomiHygroThermoDelegate(btle.DefaultDelegate):
+class XiomiHygroThermoDelegate(object):
     def __init__(self):
-        btle.DefaultDelegate.__init__(self)
         self.temperature = None
         self.humidity = None
         self.received = False
 
     def handleNotification(self, cHandle, data):
-        #print("{}: {}".format(cHandle, data))
         if cHandle == 14:
             m = re.search('T=([\d\.]*)\s+?H=([\d\.]*)', ''.join(map(chr, data)))
             self.temperature = m.group(1)
@@ -72,6 +69,8 @@ class XiomiHygroThermo(object):
 
     def get_data(self, now = None):
         try:
+            from bluepy import btle
+
             p = btle.Peripheral(self.address)
 
             #self.name = ''.join(map(chr, p.readCharacteristic(0x3)))
