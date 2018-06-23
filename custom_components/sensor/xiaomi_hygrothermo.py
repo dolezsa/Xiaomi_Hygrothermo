@@ -90,12 +90,15 @@ class XiomiHygroThermo(object):
 
             ok = True
         except Exception as ex:
-            _LOGGER.error("Unexpected error: {}".format(ex))
+            if isinstance(ex, btle.BTLEException):
+                _LOGGER.warning("BT connection error: {}".format(ex))
+            else:
+                _LOGGER.error("Unexpected error: {}".format(ex))
             ok = False
 
         for i in [0, 1]:
-            self.entities[i].set_state(ok, self.battery, self.temperature if i == 0 else self.humidity)
-            if not now is None:
+            changed = self.entities[i].set_state(ok, self.battery, self.temperature if i == 0 else self.humidity)
+            if (not now is None) and changed:
                 self.entities[i].async_schedule_update_ha_state()
 
 class XiomiHygroThermoEntity(Entity):
@@ -106,6 +109,8 @@ class XiomiHygroThermoEntity(Entity):
         self._is_available = True
         self._type = device_type
         self._device_state_attributes = {}
+        self.__errcnt = 0
+        self.__laststate = None
 
     @property
     def name(self):
@@ -149,8 +154,20 @@ class XiomiHygroThermoEntity(Entity):
         return self._state
 
     def set_state(self, is_available, battery, state_value):
-        self._is_available = is_available
+        changed = False
         if is_available:
             if not battery is None:
                 self._device_state_attributes[ATTR_BATTERY_LEVEL] = battery
+                changed = True
             self._state = state_value
+            changed = changed or self.__laststate != state_value
+            self.__laststate = state_value
+            self._is_available = True
+        else:
+            self.__errcnt += 1
+
+        if self.__errcnt > 3:
+            self._is_available = False
+            changed = True
+        
+        return changed
