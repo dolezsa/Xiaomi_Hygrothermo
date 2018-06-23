@@ -162,6 +162,7 @@ class XiomiHygroThermoEntity(Entity):
             self._state = state_value
             changed = changed or self.__laststate != state_value
             self.__laststate = state_value
+            self.__errcnt = 0
             self._is_available = True
         else:
             self.__errcnt += 1
