@@ -1,0 +1,8 @@
+{
+  "domain": "xiaomi_hygrothermo",
+  "name": "Xioami Hygrothermo",
+  "documentation": "https://github.com/dolezsa/Xiaomi_Hygrothermo/blob/master/README.md",
+  "dependencies": [],
+  "codeowners": ["@dolezsa"],
+  "requirements": ["bluepy==1.1.4"]
+}
